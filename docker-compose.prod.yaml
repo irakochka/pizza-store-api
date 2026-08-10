@@ -2,9 +2,7 @@ services:
   php:
     build:
       target: prod
-    env_file:
-      - .env.infrastructure
-    volumes: []
+    volumes: !reset []
 
   nginx:
     ports:
@@ -16,4 +14,4 @@ services:
         condition: service_healthy
 
   postgres:
-    ports: []
+    ports: !reset []

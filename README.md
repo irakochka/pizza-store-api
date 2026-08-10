@@ -55,7 +55,7 @@ Backend API для интернет-магазина пиццы и напитк�
 │       └── conf/                 # конфигурация PHP, FPM и Xdebug
 ├── docker-compose.yaml           # Docker Compose для разработки
 ├── docker-compose.prod.yaml      # production override для Docker Compose
-├── .env.infrastructure.example   # пример infrastructure env
+├── .env                          # infrastructure env с дефолтными значениями
 ├── Makefile
 └── README.md
 ```
@@ -67,7 +67,8 @@ Backend API для интернет-магазина пиццы и напитк�
 Infrastructure-настройки хранятся в корне проекта:
 
 ```text
-.env.infrastructure
+.env
+.env.local
 ```
 
 Application-настройки Symfony хранятся внутри приложения:
@@ -77,11 +78,15 @@ app/.env
 app/.env.dev
 ```
 
-Создать локальный infrastructure env-файл:
+Файл `.env` содержит дефолтные значения для Docker Compose и коммитится в репозиторий. Docker Compose читает его автоматически.
+
+Если нужно переопределить локальные значения, например занятый порт, можно создать `.env.local`:
 
 ```bash
-cp .env.infrastructure.example .env.infrastructure
+cp .env .env.local
 ```
+
+Файл `.env.local` добавлен в `.gitignore` и не коммитится.
 
 HTTP-порт по умолчанию:
 
@@ -89,7 +94,7 @@ HTTP-порт по умолчанию:
 HTTP_PORT=8080
 ```
 
-Если порт занят, его можно изменить в `.env.infrastructure`.
+Если порт занят, его можно изменить в `.env.local`.
 
 ## Запуск
 

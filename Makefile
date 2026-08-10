@@ -1,5 +1,4 @@
-ENV_FILE=.env.infrastructure
-COMPOSE=docker compose --env-file $(ENV_FILE)
+COMPOSE=docker compose
 COMPOSE_PROD=$(COMPOSE) -f docker-compose.yaml -f docker-compose.prod.yaml
 
 .PHONY: help up down restart build rebuild logs ps shell composer console db prod-build prod-up prod-down

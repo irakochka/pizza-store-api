@@ -7,15 +7,13 @@ services:
       args:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
-    env_file:
-      - .env.infrastructure
     volumes:
       - ./app:/var/www/app
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - pizza-store
+      - app
 
   nginx:
     image: nginx:1.29.1-alpine
@@ -28,7 +26,7 @@ services:
       php:
         condition: service_started
     networks:
-      - pizza-store
+      - app
 
   postgres:
     image: postgres:17.6-alpine
@@ -47,11 +45,10 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - pizza-store
+      - app
 
 volumes:
   postgres-data:
 
 networks:
-  pizza-store:
-    name: ${PROJECT_NAME:-pizza-store}
+  app:

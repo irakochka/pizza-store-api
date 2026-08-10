@@ -1,7 +1,6 @@
 .DS_Store
 .idea/
 
-.env.infrastructure
-.env.infrastructure.local
+.env.local
 
 /docker/postgres/data/
