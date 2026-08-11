@@ -9,3 +9,9 @@
 
 controllers:
     resource: routing.controllers
+
+product_controllers:
+    resource:
+        path: ../src/Product/Presentation/Http/Controller/
+        namespace: App\Product\Presentation\Http\Controller
+    type: attribute

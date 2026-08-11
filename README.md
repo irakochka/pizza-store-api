@@ -88,6 +88,12 @@ cp .env .env.local
 
 Файл `.env.local` добавлен в `.gitignore` и не коммитится.
 
+Docker Compose автоматически читает только корневой `.env`. Если нужно запустить окружение с локальными переопределениями из `.env.local`, передайте файл явно:
+
+```bash
+docker compose --env-file .env --env-file .env.local up -d
+```
+
 HTTP-порт по умолчанию:
 
 ```dotenv
@@ -95,6 +101,18 @@ HTTP_PORT=8080
 ```
 
 Если порт занят, его можно изменить в `.env.local`.
+
+PostgreSQL-порт по умолчанию:
+
+```dotenv
+POSTGRES_PORT=5432
+```
+
+Если на host-машине уже запущен локальный PostgreSQL, можно переопределить порт в `.env.local`, например:
+
+```dotenv
+POSTGRES_PORT=5433
+```
 
 ## Запуск
 
@@ -164,6 +182,12 @@ make composer
 
 ```bash
 make console
+```
+
+Выполнить миграции Doctrine:
+
+```bash
+docker compose exec php php bin/console doctrine:migrations:migrate
 ```
 
 Открыть PostgreSQL shell:
@@ -237,3 +261,36 @@ make prod-down
 ```text
 http://localhost:8080
 ```
+
+### Этап 2: CRUD продуктов
+
+**Цель**: реализовать RESTful API для управления продуктами каталога.
+
+**Архитектура**: lightweight `clean/ddd/package-by-feature`. Код продукта сгруппирован внутри feature-пакета `Product`:
+
+```text
+app/src/Product/
+├── Domain/
+├── Infrastructure/
+└── Presentation/
+```
+
+**Реализовано**:
+
+- Создана сущность `Product` с полями `name`, `description`, `price`, `weight`, `category`.
+- Добавлена Doctrine migration для таблицы `products`.
+- Реализован CRUD API с пагинацией списка продуктов.
+- Добавлена валидация входящих данных через request DTO и `MapRequestPayload`.
+- Для HTTP-статусов используются константы `Response::HTTP_*`.
+
+**Endpoints**:
+
+```text
+GET    /products?page=1&limit=10
+GET    /products/{id}
+POST   /products
+PATCH  /products/{id}
+DELETE /products/{id}
+```
+
+**Результат**: работает CRUD API для продуктов с миграцией БД, пагинацией и валидацией входящих данных.
