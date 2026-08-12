@@ -9,23 +9,38 @@ use Symfony\Component\Validator\Constraints as Assert;
 final readonly class CreateProductRequest
 {
     public function __construct(
-        #[Assert\NotBlank]
+        #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 255)]
         public string $name,
 
-        #[Assert\NotBlank]
-        #[Assert\Length(max: 2000)]
+        #[Assert\NotBlank(normalizer: 'trim')]
+        #[Assert\Length(max: 2_000)]
         public string $description,
 
-        #[Assert\Positive]
+        #[Assert\Range(min: 1, max: 100_000)]
         public int $price,
 
-        #[Assert\Positive]
+        #[Assert\Range(min: 1, max: 10_000)]
         public int $weight,
 
-        #[Assert\NotBlank]
+        #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 100)]
         public string $category,
     ) {
+    }
+
+    public function normalizedName(): string
+    {
+        return trim($this->name);
+    }
+
+    public function normalizedDescription(): string
+    {
+        return trim($this->description);
+    }
+
+    public function normalizedCategory(): string
+    {
+        return trim($this->category);
     }
 }

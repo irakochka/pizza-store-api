@@ -7,15 +7,17 @@ namespace App\Product\Presentation\Http\Controller;
 use App\Product\Domain\Entity\Product;
 use App\Product\Infrastructure\Repository\ProductRepository;
 use App\Product\Presentation\Http\Request\CreateProductRequest;
+use App\Product\Presentation\Http\Request\ListProductsRequest;
 use App\Product\Presentation\Http\Request\UpdateProductRequest;
+use App\Product\Presentation\Http\Response\ProductResponse;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/products')]
+#[Route('/products', format: 'json')]
 final class ProductController
 {
     public function __construct(
@@ -33,29 +35,28 @@ final class ProductController
             return new JsonResponse(['message' => 'Product not found.'], Response::HTTP_NOT_FOUND);
         }
 
-        return new JsonResponse($this->productToArray($product), Response::HTTP_OK);
+        return new JsonResponse(ProductResponse::fromEntity($product), Response::HTTP_OK);
     }
 
     #[Route('', name: 'product_list', methods: ['GET'])]
-    public function list(Request $request): JsonResponse
-    {
-        $page = max(1, $request->query->getInt('page', 1));
-        $limit = max(1, min(100, $request->query->getInt('limit', 10)));
-
+    public function list(
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_BAD_REQUEST, mapWhenEmpty: true)]
+        ListProductsRequest $query,
+    ): JsonResponse {
         $products = $this->productRepository->findBy(
             [],
             ['id' => 'ASC'],
-            $limit,
-            ($page - 1) * $limit
+            $query->limit,
+            ($query->page - 1) * $query->limit
         );
 
-        $items = array_map(fn(Product $product) => $this->productToArray($product), $products);
+        $items = array_map(static fn(Product $product) => ProductResponse::fromEntity($product), $products);
 
         return new JsonResponse(
             [
                 'items' => $items,
-                'page' => $page,
-                'limit' => $limit,
+                'page' => $query->page,
+                'limit' => $query->limit,
             ],
             Response::HTTP_OK,
         );
@@ -65,17 +66,17 @@ final class ProductController
     public function create(#[MapRequestPayload] CreateProductRequest $payload): JsonResponse
     {
         $product = new Product(
-            $payload->name,
-            $payload->description,
+            $payload->normalizedName(),
+            $payload->normalizedDescription(),
             $payload->price,
             $payload->weight,
-            $payload->category,
+            $payload->normalizedCategory(),
         );
 
         $this->entityManager->persist($product);
         $this->entityManager->flush();
 
-        return new JsonResponse($this->productToArray($product), Response::HTTP_CREATED);
+        return new JsonResponse(ProductResponse::fromEntity($product), Response::HTTP_CREATED);
     }
 
     #[Route('/{id}', name: 'product_update', methods: ['PATCH'])]
@@ -88,16 +89,16 @@ final class ProductController
         }
 
         $product->updateDetails(
-            $payload->name ?? $product->getName(),
-            $payload->description ?? $product->getDescription(),
+            $payload->normalizedName() ?? $product->getName(),
+            $payload->normalizedDescription() ?? $product->getDescription(),
             $payload->price ?? $product->getPrice(),
             $payload->weight ?? $product->getWeight(),
-            $payload->category ?? $product->getCategory(),
+            $payload->normalizedCategory() ?? $product->getCategory(),
         );
 
         $this->entityManager->flush();
 
-        return new JsonResponse($this->productToArray($product), Response::HTTP_OK);
+        return new JsonResponse(ProductResponse::fromEntity($product), Response::HTTP_OK);
     }
 
     #[Route('/{id}', name: 'product_delete', methods: ['DELETE'])]
@@ -113,17 +114,5 @@ final class ProductController
         $this->entityManager->flush();
 
         return new Response(null, Response::HTTP_NO_CONTENT);
-    }
-
-    private function productToArray(Product $product): array
-    {
-        return [
-            'id' => $product->getId(),
-            'name' => $product->getName(),
-            'description' => $product->getDescription(),
-            'price' => $product->getPrice(),
-            'weight' => $product->getWeight(),
-            'category' => $product->getCategory(),
-        ];
     }
 }
