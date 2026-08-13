@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\DataFixtures;
+namespace App\Tests\DataFixtures;
 
 use App\Product\Domain\Entity\Product;
 use Doctrine\Bundle\FixturesBundle\Fixture;

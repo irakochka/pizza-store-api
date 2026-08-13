@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Product\Presentation\Http\Request;
+namespace App\Shared\Presentation\Http\Request;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class ListProductsRequest
+final readonly class PaginationRequest
 {
     public function __construct(
         #[Assert\Range(min: 1)]
