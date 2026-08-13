@@ -21,3 +21,17 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@dev:
+    services:
+        App\Tests\DataFixtures\:
+            resource: '../tests/DataFixtures/'
+            autowire: true
+            autoconfigure: true
+
+when@test:
+    services:
+        App\Tests\DataFixtures\:
+            resource: '../tests/DataFixtures/'
+            autowire: true
+            autoconfigure: true
