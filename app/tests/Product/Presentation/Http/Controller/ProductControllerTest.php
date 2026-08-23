@@ -134,6 +134,8 @@ final class ProductControllerTest extends WebTestCase
 
         self::assertNotNull($product);
 
+        $productId = $product->getId();
+
         $client = static::getClient();
         $client->jsonRequest('PATCH', '/products/' . $product->getId(),
             [
@@ -141,6 +143,10 @@ final class ProductControllerTest extends WebTestCase
                 'price' => 800,
             ]
         );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $client->request('GET', '/products/' . $productId);
 
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
 
@@ -178,16 +184,22 @@ final class ProductControllerTest extends WebTestCase
 
         self::assertNotNull($product);
 
+        $productId = $product->getId();
+
         $client = static::getClient();
-        $client->jsonRequest('DELETE', '/products/' . $product->getId());
+        $client->request('DELETE', '/products/' . $product->getId());
 
         self::assertResponseStatusCodeSame(Response::HTTP_NO_CONTENT);
+
+        $client->request('GET', '/products/' . $productId);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 
     public function testDeleteProductReturnsNotFoundForMissingProduct(): void
     {
         $client = static::getClient();
-        $client->jsonRequest('DELETE', '/products/' . self::MISSING_PRODUCT_ID);
+        $client->request('DELETE', '/products/' . self::MISSING_PRODUCT_ID);
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
 
