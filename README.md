@@ -294,3 +294,35 @@ DELETE /products/{id}
 ```
 
 **Результат**: работает CRUD API для продуктов с миграцией БД, пагинацией и валидацией входящих данных.
+
+### Этап 3: Тестирование
+
+**Цель**: покрыть CRUD API продуктов функциональными тестами.
+
+**Реализовано**:
+
+- Установлен PHPUnit для Symfony-приложения.
+- Настроено тестовое окружение `APP_ENV=test`.
+- Настроена отдельная тестовая БД `pizza_store_test`.
+- Для подготовки тестовых данных используются Doctrine fixtures.
+- Добавлены feature-тесты для CRUD endpoint'ов продуктов:
+  - success и error case для списка продуктов;
+  - success и error case для просмотра продукта;
+  - success и error case для создания продукта;
+  - success и error case для обновления продукта;
+  - success и error case для удаления продукта.
+
+**Команды для тестовой БД**:
+
+```bash
+docker compose exec php php bin/console doctrine:database:create --env=test
+docker compose exec php php bin/console doctrine:migrations:migrate --env=test
+```
+
+**Запуск тестов**:
+
+```bash
+docker compose exec php php bin/phpunit
+```
+
+**Результат**: CRUD операции продуктов покрыты feature-тестами.
