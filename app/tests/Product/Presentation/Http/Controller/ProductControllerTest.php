@@ -6,12 +6,14 @@ namespace App\Tests\Product\Presentation\Http\Controller;
 
 use App\Product\Domain\Entity\Product;
 use App\Tests\DataFixtures\ProductFixtures;
+use App\Tests\DataFixtures\UserFixtures;
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
 use Doctrine\Common\DataFixtures\Loader;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class ProductControllerTest extends WebTestCase
 {
@@ -24,8 +26,11 @@ final class ProductControllerTest extends WebTestCase
 
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
+        $passwordHasher = self::getContainer()->get(UserPasswordHasherInterface::class);
+
         $loader = new Loader();
         $loader->addFixture(new ProductFixtures());
+        $loader->addFixture(new UserFixtures($passwordHasher));
 
         $purger = new ORMPurger($this->entityManager);
 
@@ -97,7 +102,8 @@ final class ProductControllerTest extends WebTestCase
                 'price' => 720,
                 'weight' => 500,
                 'category' => 'pizza',
-            ]
+            ],
+            $this->adminAuthorizationHeader(),
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
@@ -120,10 +126,46 @@ final class ProductControllerTest extends WebTestCase
                 'price' => 0,
                 'weight' => 0,
                 'category' => '',
-            ]
+            ],
+            $this->adminAuthorizationHeader(),
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
+    public function testCreateProductRequiresAuthentication(): void
+    {
+        $client = static::getClient();
+
+        $client->jsonRequest('POST', '/products', [
+            'name' => 'Гавайская',
+            'description' => 'Пицца с курицей и ананасами',
+            'price' => 720,
+            'weight' => 500,
+            'category' => 'pizza',
+        ]);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testCreateProductForbiddenForRegularUser(): void
+    {
+        $client = static::getClient();
+
+        $client->jsonRequest(
+            'POST',
+            '/products',
+            [
+                'name' => 'Гавайская',
+                'description' => 'Пицца с курицей и ананасами',
+                'price' => 720,
+                'weight' => 500,
+                'category' => 'pizza',
+            ],
+            $this->userAuthorizationHeader(),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testUpdateProductSuccess(): void
@@ -141,7 +183,8 @@ final class ProductControllerTest extends WebTestCase
             [
                 'name' => 'Маргарита большая',
                 'price' => 800,
-            ]
+            ],
+            $this->adminAuthorizationHeader(),
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
@@ -166,7 +209,8 @@ final class ProductControllerTest extends WebTestCase
             [
                 'name' => 'Маргарита большая',
                 'price' => 800,
-            ]
+            ],
+            $this->adminAuthorizationHeader(),
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
@@ -174,6 +218,43 @@ final class ProductControllerTest extends WebTestCase
         $data = json_decode($client->getResponse()->getContent(), true);
 
         self::assertSame('Product not found.', $data['message']);
+    }
+
+    public function testUpdateProductRequiresAuthentication(): void
+    {
+        $product = $this->entityManager
+            ->getRepository(Product::class)
+            ->findOneBy(['name' => 'Маргарита']);
+
+        self::assertNotNull($product);
+
+        $client = static::getClient();
+        $client->jsonRequest('PATCH', '/products/' . $product->getId(), [
+            'name' => 'Маргарита большая',
+            'price' => 800,
+        ]);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testUpdateProductForbiddenForRegularUser(): void
+    {
+        $product = $this->entityManager
+            ->getRepository(Product::class)
+            ->findOneBy(['name' => 'Маргарита']);
+
+        self::assertNotNull($product);
+
+        $client = static::getClient();
+        $client->jsonRequest('PATCH', '/products/' . $product->getId(),
+            [
+                'name' => 'Маргарита большая',
+                'price' => 800,
+            ],
+            $this->userAuthorizationHeader(),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testDeleteProductSuccess(): void
@@ -187,7 +268,13 @@ final class ProductControllerTest extends WebTestCase
         $productId = $product->getId();
 
         $client = static::getClient();
-        $client->request('DELETE', '/products/' . $product->getId());
+        $client->request(
+            'DELETE',
+            '/products/' . $product->getId(),
+            [],
+            [],
+            $this->adminAuthorizationHeader(),
+        );
 
         self::assertResponseStatusCodeSame(Response::HTTP_NO_CONTENT);
 
@@ -199,12 +286,82 @@ final class ProductControllerTest extends WebTestCase
     public function testDeleteProductReturnsNotFoundForMissingProduct(): void
     {
         $client = static::getClient();
-        $client->request('DELETE', '/products/' . self::MISSING_PRODUCT_ID);
+        $client->request(
+            'DELETE',
+            '/products/' . self::MISSING_PRODUCT_ID,
+            [],
+            [],
+            $this->adminAuthorizationHeader(),
+        );
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
 
         $data = json_decode($client->getResponse()->getContent(), true);
 
         self::assertSame('Product not found.', $data['message']);
+    }
+
+    public function testDeleteProductRequiresAuthentication(): void
+    {
+        $product = $this->entityManager
+            ->getRepository(Product::class)
+            ->findOneBy(['name' => 'Маргарита']);
+
+        self::assertNotNull($product);
+
+        $client = static::getClient();
+        $client->request('DELETE', '/products/' . $product->getId());
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testDeleteProductForbiddenForRegularUser(): void
+    {
+        $product = $this->entityManager
+            ->getRepository(Product::class)
+            ->findOneBy(['name' => 'Маргарита']);
+
+        self::assertNotNull($product);
+
+        $client = static::getClient();
+        $client->request(
+            'DELETE',
+            '/products/' . $product->getId(),
+            [],
+            [],
+            $this->userAuthorizationHeader(),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
+    private function adminAuthorizationHeader(): array
+    {
+        return $this->authorizationHeader('admin@example.com', 'admin123');
+    }
+
+    private function userAuthorizationHeader(): array
+    {
+        return $this->authorizationHeader('user@example.com', 'user123');
+    }
+
+    private function authorizationHeader(string $email, string $password): array
+    {
+        $client = static::getClient();
+
+        $client->jsonRequest('POST', '/auth/login', [
+            'email' => $email,
+            'password' => $password,
+        ]);
+
+        self::assertResponseIsSuccessful();
+
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        self::assertArrayHasKey('token', $data);
+
+        return [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $data['token'],
+        ];
     }
 }

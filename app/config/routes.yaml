@@ -15,3 +15,7 @@ product_controllers:
         path: ../src/Product/Presentation/Http/Controller/
         namespace: App\Product\Presentation\Http\Controller
     type: attribute
+
+auth_login:
+    path: /auth/login
+    methods: [POST]
