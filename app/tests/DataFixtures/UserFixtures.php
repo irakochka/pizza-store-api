@@ -19,11 +19,11 @@ final class UserFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-        $admin = new User('admin@example.com');
+        $admin = new User('Admin', '+79990000001', 'admin@example.com');
         $admin->setPassword($this->passwordHasher->hashPassword($admin, 'admin123'));
         $admin->setRoles([UserRole::Admin->value]);
 
-        $user = new User('user@example.com');
+        $user = new User('User', '+79990000002', 'user@example.com');
         $user->setPassword($this->passwordHasher->hashPassword($user, 'user123'));
         $user->setRoles([UserRole::User->value]);
 

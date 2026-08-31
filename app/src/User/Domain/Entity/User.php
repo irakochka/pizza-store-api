@@ -21,6 +21,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
+    #[ORM\Column(length: 255)]
+    private string $name;
+
+    #[ORM\Column(length: 30)]
+    private string $phone;
+
     #[ORM\Column(length: 180)]
     private string $email;
 
@@ -33,8 +39,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private string $password;
 
-    public function __construct(string $email)
+    public function __construct(string $name, string $phone, string $email)
     {
+        $this->name = trim($name);
+        $this->phone = trim($phone);
         $this->email = mb_strtolower(trim($email));
         $this->roles = [UserRole::User->value];
     }
@@ -42,6 +50,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getPhone(): string
+    {
+        return $this->phone;
     }
 
     public function getEmail(): string
@@ -70,7 +88,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function setRoles(array $roles): void
     {
-        $this->roles = $roles;
+        foreach ($roles as $role) {
+            UserRole::from($role);
+        }
+
+        $this->roles = array_values(array_unique($roles));
     }
 
     public function getPassword(): string

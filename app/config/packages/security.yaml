@@ -15,15 +15,7 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
-        login:
-            pattern: ^/auth/login
-            stateless: true
-            json_login:
-                check_path: /auth/login
-                username_path: email
-                password_path: password
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+
         api:
             pattern: ^/
             stateless: true
@@ -31,6 +23,7 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
+        - { path: ^/auth/register, roles: PUBLIC_ACCESS }
         - { path: ^/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/products$, methods: [ GET ], roles: PUBLIC_ACCESS }
         - { path: ^/products/\d+$, methods: [ GET ], roles: PUBLIC_ACCESS }

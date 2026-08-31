@@ -7,16 +7,26 @@ namespace App\Tests\Product\Presentation\Http\Controller;
 use App\Product\Domain\Entity\Product;
 use App\Tests\DataFixtures\ProductFixtures;
 use App\Tests\DataFixtures\UserFixtures;
+use App\Tests\Support\AuthenticatesUsers;
+use App\User\Domain\Entity\User;
+use DateTimeImmutable;
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
 use Doctrine\Common\DataFixtures\Loader;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\ORM\EntityManagerInterface;
+use Lcobucci\JWT\Encoding\ChainedFormatter;
+use Lcobucci\JWT\Encoding\JoseEncoder;
+use Lcobucci\JWT\Signer\Key\InMemory;
+use Lcobucci\JWT\Signer\Rsa\Sha256;
+use Lcobucci\JWT\Token\Builder;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class ProductControllerTest extends WebTestCase
 {
+    use AuthenticatesUsers;
+
     private const MISSING_PRODUCT_ID = 999999;
     private EntityManagerInterface $entityManager;
 
@@ -166,6 +176,46 @@ final class ProductControllerTest extends WebTestCase
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
+    public function testCreateProductReturnsUnauthorizedForInvalidToken(): void
+    {
+        $client = static::getClient();
+
+        $client->jsonRequest(
+            'POST',
+            '/products',
+            [
+                'name' => 'Гавайская',
+                'description' => 'Пицца с курицей и ананасами',
+                'price' => 720,
+                'weight' => 500,
+                'category' => 'pizza',
+            ],
+            $this->bearerTokenHeader('invalid-token'),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testCreateProductReturnsUnauthorizedForExpiredToken(): void
+    {
+        $client = static::getClient();
+
+        $client->jsonRequest(
+            'POST',
+            '/products',
+            [
+                'name' => 'Гавайская',
+                'description' => 'Пицца с курицей и ананасами',
+                'price' => 720,
+                'weight' => 500,
+                'category' => 'pizza',
+            ],
+            $this->bearerTokenHeader($this->expiredAdminToken()),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
     public function testUpdateProductSuccess(): void
@@ -335,33 +385,25 @@ final class ProductControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
-    private function adminAuthorizationHeader(): array
+    private function expiredAdminToken(): string
     {
-        return $this->authorizationHeader('admin@example.com', 'admin123');
-    }
+        $user = $this->entityManager
+            ->getRepository(User::class)
+            ->findOneBy(['email' => 'admin@example.com']);
 
-    private function userAuthorizationHeader(): array
-    {
-        return $this->authorizationHeader('user@example.com', 'user123');
-    }
+        self::assertInstanceOf(User::class, $user);
 
-    private function authorizationHeader(string $email, string $password): array
-    {
-        $client = static::getClient();
+        $now = new DateTimeImmutable();
 
-        $client->jsonRequest('POST', '/auth/login', [
-            'email' => $email,
-            'password' => $password,
-        ]);
-
-        self::assertResponseIsSuccessful();
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        self::assertArrayHasKey('token', $data);
-
-        return [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $data['token'],
-        ];
+        return (new Builder(new JoseEncoder(), ChainedFormatter::default()))
+            ->issuedAt($now->modify('-2 hours'))
+            ->expiresAt($now->modify('-1 hour'))
+            ->relatedTo($user->getUserIdentifier())
+            ->withClaim('roles', $user->getRoles())
+            ->getToken(
+                new Sha256(),
+                InMemory::file('/var/www/app/config/jwt/private.pem', $_ENV['JWT_PASSPHRASE']),
+            )
+            ->toString();
     }
 }
