@@ -30,16 +30,14 @@ final readonly class AuthService
 
     public function register(RegisterUserRequest $request): User
     {
-        $email = $request->normalizedEmail();
-
-        if ($this->userRepository->findOneBy(['email' => $email]) !== null) {
+        if ($this->userRepository->findOneBy(['email' => $request->email]) !== null) {
             throw new ConflictHttpException('User with this email already exists.');
         }
 
         $user = new User(
-            $request->normalizedName(),
-            $request->normalizedPhone(),
-            $email,
+            $request->name,
+            $request->phone,
+            $request->email,
         );
         $user->setPassword($this->passwordHasher->hashPassword($user, $request->password));
         $user->setRoles([UserRole::User->value]);
@@ -54,7 +52,7 @@ final readonly class AuthService
 
     public function login(LoginRequest $request): AuthTokenResponse
     {
-        $user = $this->userRepository->findOneBy(['email' => $request->normalizedEmail()]);
+        $user = $this->userRepository->findOneBy(['email' => $request->email]);
 
         if (!$user instanceof User || !$this->passwordHasher->isPasswordValid($user, $request->password)) {
             throw new UnauthorizedHttpException('Bearer', 'Invalid credentials.');

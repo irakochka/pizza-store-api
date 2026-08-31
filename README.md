@@ -187,25 +187,37 @@ make console
 Выполнить миграции Doctrine:
 
 ```bash
-docker compose exec php bin/console doctrine:migrations:migrate
+make migrate
 ```
 
 Откатить последнюю миграцию Doctrine:
 
 ```bash
-docker compose exec php bin/console doctrine:migrations:migrate prev
+make migrate-prev
 ```
 
 Запустить тесты:
 
 ```bash
-docker compose exec php bin/phpunit
+make test
+```
+
+Полностью пересоздать тестовую БД и накатить миграции:
+
+```bash
+make test-db-reset
+```
+
+Проверить миграции на чистой тестовой БД вперёд/назад/вперёд:
+
+```bash
+make test-migrations
 ```
 
 Сгенерировать JWT keypair после чистого развёртывания:
 
 ```bash
-docker compose exec php bin/console lexik:jwt:generate-keypair
+make jwt-generate
 ```
 
 Обязательные application-переменные описаны в `app/.env`:
@@ -344,14 +356,13 @@ DELETE /products/{id}
 **Команды для тестовой БД**:
 
 ```bash
-docker compose exec php bin/console doctrine:database:create --env=test
-docker compose exec php bin/console doctrine:migrations:migrate --env=test
+make migrate-test
 ```
 
 **Запуск тестов**:
 
 ```bash
-docker compose exec php bin/phpunit
+make test
 ```
 
 **Результат**: CRUD операции продуктов покрыты feature-тестами.
@@ -417,15 +428,16 @@ curl http://localhost:8080/auth/me \
   -H 'Authorization: Bearer <accessToken>'
 ```
 
-**Проверка миграций и тестов**:
+**Проверка миграций**:
 
 ```bash
-docker compose exec php bin/console doctrine:database:drop --env=test --force
-docker compose exec php bin/console doctrine:database:create --env=test
-docker compose exec php bin/console doctrine:migrations:migrate --env=test --no-interaction
-docker compose exec php bin/console doctrine:migrations:migrate prev --env=test --no-interaction
-docker compose exec php bin/console doctrine:migrations:migrate --env=test --no-interaction
-docker compose exec php bin/phpunit
+make test-migrations
+```
+
+**Запуск тестов**:
+
+```bash
+make test
 ```
 
 **Результат**: защищённый API с регистрацией, JWT login, `GET /auth/me`, безопасными JSON-ошибками и разграничением прав доступа.

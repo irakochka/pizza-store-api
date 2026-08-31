@@ -7,7 +7,7 @@ namespace App\Tests\Product\Presentation\Http\Controller;
 use App\Product\Domain\Entity\Product;
 use App\Tests\DataFixtures\ProductFixtures;
 use App\Tests\DataFixtures\UserFixtures;
-use App\Tests\Support\AuthenticatesUsers;
+use App\Tests\Support\ApiTestCase;
 use App\User\Domain\Entity\User;
 use DateTimeImmutable;
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
@@ -19,14 +19,11 @@ use Lcobucci\JWT\Encoding\JoseEncoder;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\Rsa\Sha256;
 use Lcobucci\JWT\Token\Builder;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class ProductControllerTest extends WebTestCase
+final class ProductControllerTest extends ApiTestCase
 {
-    use AuthenticatesUsers;
-
     private const MISSING_PRODUCT_ID = 999999;
     private EntityManagerInterface $entityManager;
 

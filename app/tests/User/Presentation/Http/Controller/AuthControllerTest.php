@@ -5,19 +5,17 @@ declare(strict_types=1);
 namespace App\Tests\User\Presentation\Http\Controller;
 
 use App\Tests\DataFixtures\UserFixtures;
-use App\Tests\Support\AuthenticatesUsers;
+use App\Tests\Support\ApiTestCase;
 use App\User\Domain\Entity\User;
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
 use Doctrine\Common\DataFixtures\Loader;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class AuthControllerTest extends WebTestCase
+final class AuthControllerTest extends ApiTestCase
 {
-    use AuthenticatesUsers;
     private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
