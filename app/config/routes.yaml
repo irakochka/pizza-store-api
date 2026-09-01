@@ -15,3 +15,9 @@ product_controllers:
         path: ../src/Product/Presentation/Http/Controller/
         namespace: App\Product\Presentation\Http\Controller
     type: attribute
+
+user_controllers:
+    resource:
+        path: ../src/User/Presentation/Http/Controller/
+        namespace: App\User\Presentation\Http\Controller
+    type: attribute

@@ -187,8 +187,49 @@ make console
 Выполнить миграции Doctrine:
 
 ```bash
-docker compose exec php php bin/console doctrine:migrations:migrate
+make migrate
 ```
+
+Откатить последнюю миграцию Doctrine:
+
+```bash
+make migrate-prev
+```
+
+Запустить тесты:
+
+```bash
+make test
+```
+
+Полностью пересоздать тестовую БД и накатить миграции:
+
+```bash
+make test-db-reset
+```
+
+Проверить миграции на чистой тестовой БД вперёд/назад/вперёд:
+
+```bash
+make test-migrations
+```
+
+Сгенерировать JWT keypair после чистого развёртывания:
+
+```bash
+make jwt-generate
+```
+
+Обязательные application-переменные описаны в `app/.env`:
+
+```dotenv
+JWT_SECRET_KEY=%kernel.project_dir%/config/jwt/private.pem
+JWT_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+JWT_PASSPHRASE=
+JWT_TOKEN_TTL=3600
+```
+
+`JWT_TOKEN_TTL` задаётся в секундах и используется и в конфиге JWT, и в ответе login как `expiresIn`.
 
 Открыть PostgreSQL shell:
 
@@ -315,14 +356,88 @@ DELETE /products/{id}
 **Команды для тестовой БД**:
 
 ```bash
-docker compose exec php php bin/console doctrine:database:create --env=test
-docker compose exec php php bin/console doctrine:migrations:migrate --env=test
+make migrate-test
 ```
 
 **Запуск тестов**:
 
 ```bash
-docker compose exec php php bin/phpunit
+make test
 ```
 
 **Результат**: CRUD операции продуктов покрыты feature-тестами.
+
+### Этап 4: Авторизация и ролевая модель
+
+**Цель**: реализовать регистрацию, JWT login и разграничение прав доступа к API продуктов.
+
+**Реализовано**:
+
+- Создана сущность `User` с полями `name`, `phone`, `email`, `password`, `roles`.
+- Добавлена Doctrine migration для таблицы `users`.
+- Реализованы роли guest, user и admin через `PUBLIC_ACCESS`, `ROLE_USER` и `ROLE_ADMIN`.
+- Подключён `lexik/jwt-authentication-bundle`.
+- Реализованы регистрация, login и получение текущего пользователя.
+- Регистрация и login валидируются через request DTO.
+- Выпуск JWT и проверка credentials вынесены в сервис.
+- После успешной регистрации вызывается SMS-заглушка.
+- Добавлен единый JSON-формат ошибок API без stack trace.
+- Роуты продуктов защищены по ролям:
+  - `GET` доступен всем;
+  - `POST`, `PATCH`, `DELETE` доступны только admin.
+- Добавлены feature-тесты для регистрации, login, JWT и матрицы прав guest/user/admin.
+
+**Auth endpoints**:
+
+```text
+POST /auth/register
+POST /auth/login
+GET  /auth/me
+```
+
+**Пример регистрации**:
+
+```bash
+curl -X POST http://localhost:8080/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"New User","phone":"+79990000003","email":"new-user@example.com","password":"password123"}'
+```
+
+**Пример login**:
+
+```bash
+curl -X POST http://localhost:8080/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"admin123"}'
+```
+
+Успешный login возвращает access token:
+
+```json
+{
+  "accessToken": "...",
+  "tokenType": "Bearer",
+  "expiresIn": 3600
+}
+```
+
+**Пример запроса текущего пользователя**:
+
+```bash
+curl http://localhost:8080/auth/me \
+  -H 'Authorization: Bearer <accessToken>'
+```
+
+**Проверка миграций**:
+
+```bash
+make test-migrations
+```
+
+**Запуск тестов**:
+
+```bash
+make test
+```
+
+**Результат**: защищённый API с регистрацией, JWT login, `GET /auth/me`, безопасными JSON-ошибками и разграничением прав доступа.
