@@ -1,0 +1,83 @@
+stages:
+  - build
+  - code-quality
+
+variables:
+  APP_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+  DOCKER_TLS_CERTDIR: "/certs"
+
+build:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  before_script:
+    - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
+  script:
+    - docker build --target prod -f docker/php/Dockerfile -t "$APP_IMAGE" .
+    - docker push "$APP_IMAGE"
+
+test:
+  stage: code-quality
+  image: php:8.4-cli
+  services:
+    - name: postgres:16
+      alias: postgres
+  variables:
+    APP_ENV: test
+    DATABASE_URL: "postgresql://pizza_store:pizza_store@postgres:5432/pizza_store_test?serverVersion=16&charset=utf8"
+    POSTGRES_DB: pizza_store_test
+    POSTGRES_USER: pizza_store
+    POSTGRES_PASSWORD: pizza_store
+  before_script:
+    - apt-get update
+    - apt-get install -y git unzip libpq-dev libicu-dev libzip-dev
+    - docker-php-ext-install pdo_pgsql intl zip
+    - cd app
+    - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+    - composer install --no-interaction --prefer-dist
+    - php bin/console doctrine:database:create --env=test --if-not-exists
+    - php bin/console doctrine:migrations:migrate --env=test --no-interaction
+  script:
+    - php bin/phpunit
+
+cs-fixer:
+  stage: code-quality
+  image: php:8.4-cli
+  before_script:
+    - apt-get update
+    - apt-get install -y git unzip
+    - cd app
+    - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+    - composer install --no-interaction --prefer-dist
+  script:
+    - composer cs-check
+
+phpstan:
+  stage: code-quality
+  image: php:8.4-cli
+  before_script:
+    - apt-get update
+    - apt-get install -y git unzip libpq-dev libicu-dev libzip-dev
+    - docker-php-ext-install pdo_pgsql intl zip
+    - cd app
+    - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+    - composer install --no-interaction --prefer-dist
+  script:
+    - composer stan
+
+rector:
+  stage: code-quality
+  image: php:8.4-cli
+  before_script:
+    - apt-get update
+    - apt-get install -y git unzip
+    - cd app
+    - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+    - composer install --no-interaction --prefer-dist
+  script:
+    - composer rector-check

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Product\Domain\Entity;
 
+use App\Product\Infrastructure\Repository\ProductRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use App\Product\Infrastructure\Repository\ProductRepository;
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 #[ORM\Table(name: 'products')]
@@ -15,6 +15,9 @@ class Product
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    /**
+     * @var int|null doctrine assigns this value after persistence
+     */
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
@@ -71,7 +74,8 @@ class Product
         return $this->category;
     }
 
-    public function updateDetails(string $name, string $description, int $price, int $weight, string $category): void {
+    public function updateDetails(string $name, string $description, int $price, int $weight, string $category): void
+    {
         $this->name = $name;
         $this->description = $description;
         $this->price = $price;

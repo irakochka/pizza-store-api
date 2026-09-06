@@ -24,7 +24,7 @@ final readonly class UserResponse
     {
         $id = $user->getId();
 
-        assert($id !== null);
+        \assert($id !== null);
 
         return new self(
             $id,

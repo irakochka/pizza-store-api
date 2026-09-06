@@ -48,14 +48,14 @@ final readonly class CreateProductRequest
 
     public function price(): int
     {
-        assert(is_int($this->price));
+        \assert(\is_int($this->price));
 
         return $this->price;
     }
 
     public function weight(): int
     {
-        assert(is_int($this->weight));
+        \assert(\is_int($this->weight));
 
         return $this->weight;
     }

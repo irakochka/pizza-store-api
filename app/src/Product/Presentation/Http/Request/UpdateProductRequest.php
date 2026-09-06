@@ -48,14 +48,14 @@ final readonly class UpdateProductRequest
 
     public function price(): ?int
     {
-        assert($this->price === null || is_int($this->price));
+        \assert($this->price === null || \is_int($this->price));
 
         return $this->price;
     }
 
     public function weight(): ?int
     {
-        assert($this->weight === null || is_int($this->weight));
+        \assert($this->weight === null || \is_int($this->weight));
 
         return $this->weight;
     }
