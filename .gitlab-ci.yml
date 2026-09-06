@@ -37,6 +37,8 @@ test:
     - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
     - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
     - composer install --no-interaction --prefer-dist
+    - mkdir -p config/jwt
+    - php bin/console lexik:jwt:generate-keypair --env=test --skip-if-exists --no-interaction
     - php bin/console doctrine:database:create --env=test --if-not-exists
     - php bin/console doctrine:migrations:migrate --env=test --no-interaction
   script:
