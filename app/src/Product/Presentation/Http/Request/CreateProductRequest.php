@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Product\Presentation\Http\Request;
 
+use function assert;
+use function is_int;
+
 use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class CreateProductRequest

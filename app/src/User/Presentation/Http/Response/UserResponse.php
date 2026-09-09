@@ -6,6 +6,8 @@ namespace App\User\Presentation\Http\Response;
 
 use App\User\Domain\Entity\User;
 
+use function assert;
+
 final readonly class UserResponse
 {
     /**

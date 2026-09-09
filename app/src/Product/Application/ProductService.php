@@ -34,7 +34,8 @@ final readonly class ProductService
         );
     }
 
-    public function create(string $name, string $description, int $price, int $weight, string $category,): Product {
+    public function create(string $name, string $description, int $price, int $weight, string $category): Product
+    {
         $product = new Product($name, $description, $price, $weight, $category);
 
         $this->entityManager->persist($product);
@@ -44,7 +45,7 @@ final readonly class ProductService
     }
 
     public function update(
-        Product $product, ?string $name, ?string $description, ?int $price, ?int $weight, ?string $category
+        Product $product, ?string $name, ?string $description, ?int $price, ?int $weight, ?string $category,
     ): void {
         $product->updateDetails(
             $name ?? $product->getName(),

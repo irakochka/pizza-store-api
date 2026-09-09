@@ -8,6 +8,9 @@ use App\Product\Domain\Entity\Product;
 
 final readonly class ProductResponse
 {
+    /**
+     * @return array{id: int|null, name: string, description: string, price: int, weight: int, category: string}
+     */
     public static function fromEntity(Product $product): array
     {
         return [

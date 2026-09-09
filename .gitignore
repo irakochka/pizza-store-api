@@ -4,3 +4,5 @@
 .env.local
 
 /docker/postgres/data/
+app/var/
+app/.phpunit.cache/

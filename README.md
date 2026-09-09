@@ -441,3 +441,65 @@ make test
 ```
 
 **Результат**: защищённый API с регистрацией, JWT login, `GET /auth/me`, безопасными JSON-ошибками и разграничением прав доступа.
+
+### Этап 5: Качество кода и CI/CD
+
+**Цель**: автоматизировать проверку качества кода и настроить GitLab CI/CD pipeline для проверки каждого push и Merge Request.
+
+**Реализовано**:
+
+- Установлен и настроен PHP CS Fixer.
+- Добавлена конфигурация PHP CS Fixer в `app/.php-cs-fixer.dist.php`.
+- Установлен и настроен PHPStan level 6.
+- Для корректного статического анализа Doctrine entities подключён `phpstan/phpstan-doctrine`.
+- Добавлена конфигурация PHPStan в `app/phpstan.dist.neon`.
+- Установлен и настроен Rector в dry-run режиме.
+- Добавлена конфигурация Rector в `app/rector.php`.
+- Добавлены Composer scripts для локального запуска проверок из директории `app/`.
+- Добавлены Make-команды для короткого запуска проверок из корня проекта.
+- Добавлен GitLab CI/CD pipeline в `.gitlab-ci.yml`.
+- Pipeline разделён на stages:
+  - `build` — сборка Docker image из `docker/php/Dockerfile` с production target `prod`;
+  - `code-quality` — запуск тестов, PHP CS Fixer, PHPStan и Rector.
+- Quality jobs запускаются из директории `app`, где находится `composer.json`.
+- JWT keypair для тестов генерируется внутри CI и не хранится в репозитории.
+- Кеши quality-инструментов складываются в `app/var/` и игнорируются Git.
+
+**Локальные команды проверки**:
+
+```bash
+make test
+make cs-check
+make stan
+make rector-check
+```
+
+Запустить все проверки одной командой:
+
+```bash
+make quality
+```
+
+**Composer-команды внутри приложения**:
+
+```bash
+docker compose exec php composer --working-dir=/var/www/app test
+docker compose exec php composer --working-dir=/var/www/app cs-check
+docker compose exec php composer --working-dir=/var/www/app stan
+docker compose exec php composer --working-dir=/var/www/app rector-check
+```
+
+**CI/CD**:
+
+GitLab pipeline запускается на каждый push и Merge Request. Падение любого quality job блокирует merge.
+
+**Проверено локально**:
+
+```bash
+make test
+make cs-check
+make stan
+make rector-check
+```
+
+**Результат**: проект имеет зафиксированные конфиги PHP CS Fixer, PHPStan и Rector, локальные команды качества и GitLab CI/CD pipeline для автоматической проверки кода.

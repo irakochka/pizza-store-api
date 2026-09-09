@@ -43,7 +43,7 @@ final class ProductController
     ): JsonResponse {
         $products = $this->productService->list($query->page, $query->limit);
 
-        $items = array_map(static fn(Product $product) => ProductResponse::fromEntity($product), $products);
+        $items = array_map(static fn (Product $product) => ProductResponse::fromEntity($product), $products);
 
         return new JsonResponse(
             [

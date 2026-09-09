@@ -19,6 +19,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    /**
+     * @var int|null doctrine assigns this value after persistence
+     */
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
