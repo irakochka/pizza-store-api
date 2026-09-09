@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Product\Presentation\Http\Request;
 
+use function assert;
+use function is_int;
+
 use Symfony\Component\Validator\Constraints as Assert;
 
 final readonly class CreateProductRequest
@@ -48,14 +51,14 @@ final readonly class CreateProductRequest
 
     public function price(): int
     {
-        \assert(\is_int($this->price));
+        assert(is_int($this->price));
 
         return $this->price;
     }
 
     public function weight(): int
     {
-        \assert(\is_int($this->weight));
+        assert(is_int($this->weight));
 
         return $this->weight;
     }

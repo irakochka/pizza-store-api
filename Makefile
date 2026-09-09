@@ -97,12 +97,12 @@ prod-down:
 	$(COMPOSE_PROD) down
 
 cs-check:
-	$(COMPOSE) exec php composer --working-dir=/var/www/app cs-check
+	$(COMPOSE) exec php vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php
 
 stan:
-	$(COMPOSE) exec php composer --working-dir=/var/www/app stan
+	$(COMPOSE) exec php vendor/bin/phpstan analyse --configuration=phpstan.dist.neon
 
 rector-check:
-	$(COMPOSE) exec php composer --working-dir=/var/www/app rector-check
+	$(COMPOSE) exec php vendor/bin/rector process --dry-run --config=rector.php
 
 quality: test cs-check stan rector-check

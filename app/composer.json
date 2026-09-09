@@ -1,4 +1,6 @@
 {
+    "name": "irakochka/pizza-store-api",
+    "description": "Backend API for pizza store mentorship project",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
@@ -66,11 +68,7 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
-        ],
-        "test": "php bin/phpunit",
-        "cs-check": "php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php",
-        "stan": "phpstan analyse --configuration=phpstan.dist.neon",
-        "rector-check": "rector process --dry-run --config=rector.php"
+        ]
     },
     "conflict": {
         "symfony/symfony": "*"

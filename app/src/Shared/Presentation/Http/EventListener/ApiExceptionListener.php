@@ -10,6 +10,7 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Throwable;
 
 #[AsEventListener(event: 'kernel.exception')]
 final readonly class ApiExceptionListener
@@ -45,7 +46,7 @@ final readonly class ApiExceptionListener
         }
     }
 
-    private function safeMessage(\Throwable $exception): string
+    private function safeMessage(Throwable $exception): string
     {
         $message = $exception->getMessage();
 

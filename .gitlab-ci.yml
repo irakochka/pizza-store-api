@@ -58,7 +58,7 @@ cs-fixer:
     - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
     - composer install --no-interaction --prefer-dist
   script:
-    - composer cs-check
+    - vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php
 
 phpstan:
   stage: code-quality
@@ -72,7 +72,7 @@ phpstan:
     - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
     - composer install --no-interaction --prefer-dist
   script:
-    - composer stan
+    - vendor/bin/phpstan analyse --configuration=phpstan.dist.neon
 
 rector:
   stage: code-quality
@@ -85,4 +85,4 @@ rector:
     - php composer-setup.php --install-dir=/usr/local/bin --filename=composer
     - composer install --no-interaction --prefer-dist
   script:
-    - composer rector-check
+    - vendor/bin/rector process --dry-run --config=rector.php

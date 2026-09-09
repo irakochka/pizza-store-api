@@ -6,6 +6,8 @@ namespace App\User\Presentation\Http\Response;
 
 use App\User\Domain\Entity\User;
 
+use function assert;
+
 final readonly class UserResponse
 {
     /**
@@ -24,7 +26,7 @@ final readonly class UserResponse
     {
         $id = $user->getId();
 
-        \assert($id !== null);
+        assert($id !== null);
 
         return new self(
             $id,

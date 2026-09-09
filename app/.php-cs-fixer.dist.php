@@ -16,7 +16,12 @@ return (new PhpCsFixer\Config())
         'declare_strict_types' => true,
         'concat_space' => ['spacing' => 'one'],
         'yoda_style' => false,
-        'global_namespace_import' => false,
+        'global_namespace_import' => [
+            'import_classes' => true,
+            'import_constants' => true,
+            'import_functions' => true,
+        ],
+        'native_function_invocation' => false,
         'array_syntax' => ['syntax' => 'short'],
         'ordered_imports' => ['sort_algorithm' => 'alpha'],
         'no_unused_imports' => true,

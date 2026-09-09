@@ -9,6 +9,7 @@ use App\Tests\DataFixtures\ProductFixtures;
 use App\Tests\DataFixtures\UserFixtures;
 use App\Tests\Support\ApiTestCase;
 use App\User\Domain\Entity\User;
+use DateTimeImmutable;
 use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
 use Doctrine\Common\DataFixtures\Loader;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
@@ -389,7 +390,7 @@ final class ProductControllerTest extends ApiTestCase
 
         self::assertInstanceOf(User::class, $user);
 
-        $now = new \DateTimeImmutable();
+        $now = new DateTimeImmutable();
 
         return (new Builder(new JoseEncoder(), ChainedFormatter::default()))
             ->issuedAt($now->modify('-2 hours'))
