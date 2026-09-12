@@ -220,6 +220,12 @@ make test-migrations
 make jwt-generate
 ```
 
+Загрузить фикстуры для ручной проверки API:
+
+```bash
+docker compose exec php bin/console doctrine:fixtures:load
+```
+
 Обязательные application-переменные описаны в `app/.env`:
 
 ```dotenv
@@ -503,3 +509,114 @@ make rector-check
 ```
 
 **Результат**: проект имеет зафиксированные конфиги PHP CS Fixer, PHPStan и Rector, локальные команды качества и GitLab CI/CD pipeline для автоматической проверки кода.
+
+### Этап 6: Корзина и заказы
+
+**Цель**: реализовать корзину пользователя, оформление заказов и бизнес-инварианты домена.
+
+**Реализовано**:
+
+- Созданы сущности `Cart`, `CartItem`, `Order` и `OrderItem`.
+- Корзина принадлежит конкретному авторизованному пользователю.
+- Пользователь может читать и изменять только свою корзину и свои заказы.
+- В доменной модели централизованы лимиты корзины:
+  - максимум 10 пицц;
+  - максимум 20 напитков;
+  - максимум 20 позиций при оформлении заказа.
+- Реализованы операции корзины:
+  - получение текущей корзины;
+  - установка количества товара;
+  - удаление товара из корзины;
+  - очистка корзины.
+- Реализованы операции заказов:
+  - список заказов пользователя с пагинацией;
+  - просмотр заказа пользователя;
+  - оформление заказа из корзины;
+  - изменение статуса заказа.
+- Поддержаны способы получения заказа `pickup` и `courier`.
+- Для курьерской доставки адрес обязателен и представлен value object'ом `DeliveryAddress`.
+- Адрес доставки валидируется по полям: область, город, улица, дом, подъезд, квартира, индекс.
+- Заказ хранит snapshot товара: product id, название, цену за единицу и количество.
+- Статусы заказа ограничены enum'ом: `created`, `paid`, `in_progress`, `delivering`, `completed`, `cancelled`.
+- Переходы статусов явно заданы в доменной модели заказа.
+- Создание корзины, изменение количества, очистка корзины и оформление заказа выполняются атомарно в транзакциях.
+- Для конкурентных изменений корзины используется pessimistic lock, чтобы не было lost update и выхода за лимиты при параллельных запросах.
+- Параллельное создание первой корзины обрабатывается без необработанного unique constraint violation.
+- Некорректные пользовательские сценарии возвращают JSON-ошибки вместо HTML/stack trace.
+- Добавлены feature-тесты, включая конкурентные сценарии корзины.
+
+**Cart endpoints**:
+
+```text
+GET    /cart
+PATCH  /cart/items/{productId}
+DELETE /cart/items/{productId}
+DELETE /cart
+```
+
+**Пример обновления количества товара в корзине**:
+
+```bash
+curl -X PATCH http://localhost:8080/cart/items/1 \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"quantity":2}'
+```
+
+**Orders endpoints**:
+
+```text
+GET   /orders?page=1&limit=10
+GET   /orders/{id}
+POST  /orders
+PATCH /orders/{id}/status
+```
+
+**Пример оформления заказа самовывозом**:
+
+```bash
+curl -X POST http://localhost:8080/orders \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"deliveryType":"pickup"}'
+```
+
+**Пример оформления заказа курьером**:
+
+```bash
+curl -X POST http://localhost:8080/orders \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "deliveryType": "courier",
+    "deliveryAddress": {
+      "region": "Московская область",
+      "city": "Москва",
+      "street": "Тверская",
+      "house": "1",
+      "entrance": "2",
+      "apartment": "10",
+      "postalCode": "125009"
+    }
+  }'
+```
+
+**Пример изменения статуса заказа**:
+
+```bash
+curl -X PATCH http://localhost:8080/orders/1/status \
+  -H 'Authorization: Bearer <accessToken>' \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"paid"}'
+```
+
+**Проверено локально**:
+
+```bash
+make test
+make cs-check
+make stan
+make test-migrations
+```
+
+**Результат**: реализованы корзина, оформление заказов, доменные ограничения, атомарность конкурентных операций и feature-тесты для основных success/error/concurrency сценариев.

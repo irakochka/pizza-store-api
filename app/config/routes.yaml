@@ -21,3 +21,15 @@ user_controllers:
         path: ../src/User/Presentation/Http/Controller/
         namespace: App\User\Presentation\Http\Controller
     type: attribute
+
+cart_controllers:
+    resource:
+        path: ../src/Cart/Presentation/Http/Controller/
+        namespace: App\Cart\Presentation\Http\Controller
+    type: attribute
+
+order_controllers:
+    resource:
+        path: ../src/Order/Presentation/Http/Controller/
+        namespace: App\Order\Presentation\Http\Controller
+    type: attribute

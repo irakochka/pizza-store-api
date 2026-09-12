@@ -5,44 +5,25 @@ declare(strict_types=1);
 namespace App\Tests\Product\Presentation\Http\Controller;
 
 use App\Product\Domain\Entity\Product;
-use App\Tests\DataFixtures\ProductFixtures;
-use App\Tests\DataFixtures\UserFixtures;
 use App\Tests\Support\ApiTestCase;
 use App\User\Domain\Entity\User;
 use DateTimeImmutable;
-use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
-use Doctrine\Common\DataFixtures\Loader;
-use Doctrine\Common\DataFixtures\Purger\ORMPurger;
-use Doctrine\ORM\EntityManagerInterface;
 use Lcobucci\JWT\Encoding\ChainedFormatter;
 use Lcobucci\JWT\Encoding\JoseEncoder;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\Rsa\Sha256;
 use Lcobucci\JWT\Token\Builder;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class ProductControllerTest extends ApiTestCase
 {
     private const MISSING_PRODUCT_ID = 999999;
-    private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
         static::createClient();
 
-        $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
-
-        $passwordHasher = self::getContainer()->get(UserPasswordHasherInterface::class);
-
-        $loader = new Loader();
-        $loader->addFixture(new ProductFixtures());
-        $loader->addFixture(new UserFixtures($passwordHasher));
-
-        $purger = new ORMPurger($this->entityManager);
-
-        $executor = new ORMExecutor($this->entityManager, $purger);
-        $executor->execute($loader->getFixtures());
+        $this->loadFixtures();
     }
 
     public function testListProductsSuccess(): void

@@ -28,6 +28,8 @@ security:
         - { path: ^/products$, methods: [ GET ], roles: PUBLIC_ACCESS }
         - { path: ^/products/\d+$, methods: [ GET ], roles: PUBLIC_ACCESS }
         - { path: ^/products, methods: [ POST, PATCH, DELETE ], roles: ROLE_ADMIN }
+        - { path: ^/cart, roles: ROLE_USER }
+        - { path: ^/orders, roles: ROLE_USER }
 
 when@test:
     security:
