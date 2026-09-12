@@ -20,6 +20,7 @@ final readonly class OrderService
         private OrderRepository $orderRepository,
         private CartService $cartService,
         private EntityManagerInterface $entityManager,
+        private OrderEmailNotifier $orderEmailNotifier,
     ) {
     }
 
@@ -49,14 +50,16 @@ final readonly class OrderService
 
             $this->entityManager->flush();
 
+            $this->orderEmailNotifier->orderCreated($order);
+
             return $order;
         });
     }
 
-    public function changeStatus(User $user, int $id, OrderStatus $status): Order
+    public function changeStatus(int $id, OrderStatus $status): Order
     {
-        return $this->entityManager->wrapInTransaction(function () use ($user, $id, $status): Order {
-            $order = $this->findForUser($id, $user);
+        return $this->entityManager->wrapInTransaction(function () use ($id, $status): Order {
+            $order = $this->orderRepository->find($id);
 
             if ($order === null) {
                 throw new NotFoundHttpException('Order not found.');
@@ -65,6 +68,8 @@ final readonly class OrderService
             $order->transitionTo($status);
 
             $this->entityManager->flush();
+
+            $this->orderEmailNotifier->orderStatusChanged($order);
 
             return $order;
         });

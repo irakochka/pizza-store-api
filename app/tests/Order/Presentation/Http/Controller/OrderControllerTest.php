@@ -268,7 +268,7 @@ final class OrderControllerTest extends ApiTestCase
             'PATCH',
             '/orders/' . $orderId . '/status',
             ['status' => 'paid'],
-            $this->userAuthorizationHeader(),
+            $this->adminAuthorizationHeader(),
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
@@ -288,7 +288,7 @@ final class OrderControllerTest extends ApiTestCase
             'PATCH',
             '/orders/' . $orderId . '/status',
             ['status' => 'completed'],
-            $this->userAuthorizationHeader(),
+            $this->adminAuthorizationHeader(),
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -308,7 +308,7 @@ final class OrderControllerTest extends ApiTestCase
             'PATCH',
             '/orders/' . $orderId . '/status',
             ['status' => 'unknown'],
-            $this->userAuthorizationHeader(),
+            $this->adminAuthorizationHeader(),
         );
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -325,7 +325,7 @@ final class OrderControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 
-    public function testUpdateOrderStatusReturnsNotFoundForAnotherUserOrder(): void
+    public function testUpdateOrderStatusForbiddenForRegularUser(): void
     {
         $orderId = $this->createPickupOrder();
 
@@ -335,10 +335,10 @@ final class OrderControllerTest extends ApiTestCase
             'PATCH',
             '/orders/' . $orderId . '/status',
             ['status' => 'paid'],
-            $this->adminAuthorizationHeader(),
+            $this->userAuthorizationHeader(),
         );
 
-        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testListOrdersRequiresAuthentication(): void
