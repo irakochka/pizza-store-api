@@ -1,7 +1,7 @@
 COMPOSE=docker compose
 COMPOSE_PROD=$(COMPOSE) -f docker-compose.yaml -f docker-compose.prod.yaml
 
-.PHONY: help up down restart build rebuild logs ps shell composer console db migrate migrate-prev migrate-test test test-db-reset test-migrations jwt-generate prod-build prod-up prod-down cs-check stan rector-check quality
+.PHONY: help up down restart build rebuild logs ps shell composer console db migrate migrate-prev migrate-test test test-db-reset test-migrations jwt-generate prod-build prod-up prod-down cs-fix cs-check stan rector-check quality
 
 help:
 	@echo "Available commands:"
@@ -25,6 +25,7 @@ help:
 	@echo "  make test-db-reset Reset test database and run migrations"
 	@echo "  make test-migrations Check test migrations up/down/up"
 	@echo "  make jwt-generate Generate JWT keypair"
+	@echo "  make cs-fix       Fix code style with PHP CS Fixer"
 
 up:
 	$(COMPOSE) up -d
@@ -98,6 +99,9 @@ prod-down:
 
 cs-check:
 	$(COMPOSE) exec php vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php
+
+cs-fix:
+	$(COMPOSE) exec php vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php
 
 stan:
 	$(COMPOSE) exec php vendor/bin/phpstan analyse --configuration=phpstan.dist.neon

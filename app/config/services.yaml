@@ -25,6 +25,9 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
+    App\Shared\Application\ConcurrencyBarrier:
+        alias: App\Shared\Application\NoopConcurrencyBarrier
+
 when@dev:
     services:
         App\Tests\DataFixtures\:
@@ -38,3 +41,6 @@ when@test:
             resource: '../tests/DataFixtures/'
             autowire: true
             autoconfigure: true
+
+        App\Shared\Application\ConcurrencyBarrier:
+            alias: App\Shared\Infrastructure\EnvFileConcurrencyBarrier

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Product\Presentation\Http\Request;
 
+use App\Product\Domain\Enum\ProductCategory;
+
 use function assert;
 use function is_int;
 
@@ -28,9 +30,7 @@ final readonly class CreateProductRequest
         #[Assert\Range(min: 1, max: 10_000)]
         public mixed $weight,
 
-        #[Assert\NotBlank(normalizer: 'trim')]
-        #[Assert\Length(max: 100)]
-        public string $category,
+        public ProductCategory $category,
     ) {
     }
 
@@ -44,9 +44,9 @@ final readonly class CreateProductRequest
         return trim($this->description);
     }
 
-    public function normalizedCategory(): string
+    public function normalizedCategory(): ProductCategory
     {
-        return trim($this->category);
+        return $this->category;
     }
 
     public function price(): int
