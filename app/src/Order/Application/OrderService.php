@@ -8,11 +8,13 @@ use App\Cart\Application\CartService;
 use App\Order\Domain\Entity\Order;
 use App\Order\Domain\Enum\DeliveryType;
 use App\Order\Domain\Enum\OrderStatus;
+use App\Order\Domain\Exception\OrderNotFoundException;
 use App\Order\Domain\ValueObject\DeliveryAddress;
 use App\Order\Infrastructure\Repository\OrderRepository;
+use App\Shared\Application\ConcurrencyBarrier;
 use App\User\Domain\Entity\User;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class OrderService
 {
@@ -21,6 +23,7 @@ final readonly class OrderService
         private CartService $cartService,
         private EntityManagerInterface $entityManager,
         private OrderEmailNotifier $orderEmailNotifier,
+        private ConcurrencyBarrier $concurrencyBarrier,
     ) {
     }
 
@@ -59,10 +62,12 @@ final readonly class OrderService
     public function changeStatus(int $id, OrderStatus $status): Order
     {
         return $this->entityManager->wrapInTransaction(function () use ($id, $status): Order {
-            $order = $this->orderRepository->find($id);
+            $this->concurrencyBarrier->wait('order.change_status_before_find');
+
+            $order = $this->orderRepository->find($id, LockMode::PESSIMISTIC_WRITE);
 
             if ($order === null) {
-                throw new NotFoundHttpException('Order not found.');
+                throw new OrderNotFoundException('Order not found.');
             }
 
             $order->transitionTo($status);

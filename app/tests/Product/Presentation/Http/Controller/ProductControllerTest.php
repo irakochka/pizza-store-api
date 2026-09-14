@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Product\Presentation\Http\Controller;
 
+use App\Cart\Domain\Entity\Cart;
 use App\Product\Domain\Entity\Product;
 use App\Tests\Support\ApiTestCase;
 use App\User\Domain\Entity\User;
@@ -196,6 +197,26 @@ final class ProductControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
+    public function testCreateProductRejectsInvalidCategory(): void
+    {
+        $client = static::getClient();
+
+        $client->jsonRequest(
+            'POST',
+            '/products',
+            [
+                'name' => 'Большая пицца',
+                'description' => 'Тестовое описание',
+                'price' => 500,
+                'weight' => 450,
+                'category' => 'unknown',
+            ],
+            $this->adminAuthorizationHeader(),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
     public function testUpdateProductSuccess(): void
     {
         $product = $this->entityManager
@@ -285,6 +306,24 @@ final class ProductControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
+    public function testUpdateProductRejectsInvalidCategory(): void
+    {
+        $productId = $this->productId('Маргарита');
+
+        $client = static::getClient();
+
+        $client->jsonRequest(
+            'PATCH',
+            '/products/' . $productId,
+            [
+                'category' => 'unknown',
+            ],
+            $this->adminAuthorizationHeader(),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+    }
+
     public function testDeleteProductSuccess(): void
     {
         $product = $this->entityManager
@@ -309,6 +348,32 @@ final class ProductControllerTest extends ApiTestCase
         $client->request('GET', '/products/' . $productId);
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    public function testDeleteProductRemovesItFromCarts(): void
+    {
+        $productId = $this->productId('Маргарита');
+
+        $this->addProductToCart($productId, 1);
+
+        $client = static::getClient();
+
+        $client->request(
+            'DELETE',
+            '/products/' . $productId,
+            [],
+            [],
+            $this->adminAuthorizationHeader(),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NO_CONTENT);
+
+        $cart = $this->entityManager
+            ->getRepository(Cart::class)
+            ->findOneBy(['user' => $this->user()]);
+
+        self::assertNotNull($cart);
+        self::assertSame([], $cart->getItems()->toArray());
     }
 
     public function testDeleteProductReturnsNotFoundForMissingProduct(): void

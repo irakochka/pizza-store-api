@@ -19,7 +19,7 @@ final readonly class ProductResponse
             'description' => $product->getDescription(),
             'price' => $product->getPrice(),
             'weight' => $product->getWeight(),
-            'category' => $product->getCategory(),
+            'category' => $product->getCategory()->value,
         ];
     }
 }

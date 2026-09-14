@@ -17,56 +17,101 @@ trait RunsParallelRequests
     protected function runParallelRequests(array $requests): array
     {
         $processes = [];
+        $barrierFile = tempnam(sys_get_temp_dir(), 'parallel_request_barrier_');
 
-        foreach ($requests as $request) {
-            $command = [
-                PHP_BINARY,
-                __DIR__ . '/parallel_request.php',
-                $request['method'],
-                $request['path'],
-                $request['token'],
-            ];
+        self::assertIsString($barrierFile);
 
-            if (array_key_exists('body', $request)) {
-                $command[] = json_encode($request['body'], JSON_THROW_ON_ERROR);
+        try {
+            foreach ($requests as $request) {
+                $body = array_key_exists('body', $request)
+                    ? json_encode($request['body'], JSON_THROW_ON_ERROR)
+                    : '';
+
+                $command = [
+                    PHP_BINARY,
+                    __DIR__ . '/parallel_request.php',
+                    $request['method'],
+                    $request['path'],
+                    $request['token'],
+                    $body,
+                    $barrierFile,
+                ];
+
+                $descriptorSpec = [
+                    1 => ['pipe', 'w'],
+                    2 => ['pipe', 'w'],
+                ];
+
+                $process = proc_open($command, $descriptorSpec, $pipes);
+
+                self::assertIsResource($process);
+
+                $processes[] = [
+                    'process' => $process,
+                    'pipes' => $pipes,
+                ];
             }
 
-            $descriptorSpec = [
-                1 => ['pipe', 'w'],
-                2 => ['pipe', 'w'],
-            ];
+            unlink($barrierFile);
 
-            $process = proc_open($command, $descriptorSpec, $pipes);
+            $responses = [];
 
-            self::assertIsResource($process);
+            foreach ($processes as $processData) {
+                $stdout = stream_get_contents($processData['pipes'][1]);
+                $stderr = stream_get_contents($processData['pipes'][2]);
 
-            $processes[] = [
-                'process' => $process,
-                'pipes' => $pipes,
-            ];
+                fclose($processData['pipes'][1]);
+                fclose($processData['pipes'][2]);
+
+                $exitCode = proc_close($processData['process']);
+
+                self::assertSame(0, $exitCode, $stderr);
+
+                $decoded = json_decode($stdout, true, flags: JSON_THROW_ON_ERROR);
+
+                $responses[] = [
+                    'status' => $decoded['status'],
+                    'body' => $decoded['body'],
+                ];
+            }
+
+            return $responses;
+        } finally {
+            if (file_exists($barrierFile)) {
+                unlink($barrierFile);
+            }
         }
+    }
 
-        $responses = [];
+    /**
+     * @template T
+     *
+     * @param callable(): T $callback
+     *
+     * @return T
+     */
+    protected function withConcurrencyBarrier(string $point, int $parties, callable $callback): mixed
+    {
+        $directory = sys_get_temp_dir() . '/concurrency_barrier_' . bin2hex(random_bytes(8));
 
-        foreach ($processes as $processData) {
-            $stdout = stream_get_contents($processData['pipes'][1]);
-            $stderr = stream_get_contents($processData['pipes'][2]);
+        putenv('CONCURRENCY_BARRIER_POINT=' . $point);
+        putenv('CONCURRENCY_BARRIER_PARTIES=' . $parties);
+        putenv('CONCURRENCY_BARRIER_DIR=' . $directory);
 
-            fclose($processData['pipes'][1]);
-            fclose($processData['pipes'][2]);
+        try {
+            return $callback();
+        } finally {
+            putenv('CONCURRENCY_BARRIER_POINT');
+            putenv('CONCURRENCY_BARRIER_PARTIES');
+            putenv('CONCURRENCY_BARRIER_DIR');
 
-            $exitCode = proc_close($processData['process']);
+            foreach (glob($directory . '/*.ready') ?: [] as $file) {
+                unlink($file);
+            }
 
-            self::assertSame(0, $exitCode, $stderr);
-
-            $decoded = json_decode($stdout, true, flags: JSON_THROW_ON_ERROR);
-
-            $responses[] = [
-                'status' => $decoded['status'],
-                'body' => $decoded['body'],
-            ];
+            if (is_dir($directory)) {
+                rmdir($directory);
+            }
         }
-
-        return $responses;
     }
 }

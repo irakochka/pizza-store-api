@@ -6,9 +6,9 @@ namespace App\Cart\Domain\Entity;
 
 use App\Cart\Domain\Exception\CartLimitExceededException;
 use App\Cart\Domain\Exception\EmptyCartException;
-use App\Cart\Domain\ValueObject\CartLimits;
 use App\Cart\Infrastructure\Repository\CartRepository;
 use App\Product\Domain\Entity\Product;
+use App\Product\Domain\Enum\ProductCategory;
 use App\User\Domain\Entity\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -19,6 +19,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_carts_user', fields: ['user'])]
 class Cart
 {
+    private const int MAX_PIZZAS = 10;
+    private const int MAX_DRINKS = 20;
+    private const int MAX_ORDER_POSITIONS = 20;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -112,20 +116,20 @@ class Cart
         foreach ($this->items as $item) {
             $category = $item->getProduct()->getCategory();
 
-            if ($category === 'pizza') {
+            if ($category === ProductCategory::Pizza) {
                 $pizzas += $item->getQuantity();
             }
 
-            if ($category === 'drink') {
+            if ($category === ProductCategory::Drink) {
                 $drinks += $item->getQuantity();
             }
         }
 
-        if ($pizzas > CartLimits::MAX_PIZZAS) {
+        if ($pizzas > self::MAX_PIZZAS) {
             throw new CartLimitExceededException('Cart cannot contain more than 10 pizzas.');
         }
 
-        if ($drinks > CartLimits::MAX_DRINKS) {
+        if ($drinks > self::MAX_DRINKS) {
             throw new CartLimitExceededException('Cart cannot contain more than 20 drinks.');
         }
     }
@@ -136,7 +140,7 @@ class Cart
             throw new EmptyCartException('Cart must contain at least one product.');
         }
 
-        if ($this->items->count() > CartLimits::MAX_ORDER_POSITIONS) {
+        if ($this->items->count() > self::MAX_ORDER_POSITIONS) {
             throw new CartLimitExceededException('Order cannot contain more than 20 positions.');
         }
 

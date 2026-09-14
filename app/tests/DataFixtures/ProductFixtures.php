@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\DataFixtures;
 
 use App\Product\Domain\Entity\Product;
+use App\Product\Domain\Enum\ProductCategory;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 
@@ -17,7 +18,7 @@ final class ProductFixtures extends Fixture
             'Классическая пицца с томатами и сыром',
             500,
             450,
-            'pizza',
+            ProductCategory::Pizza,
         ));
 
         $manager->persist(new Product(
@@ -25,7 +26,7 @@ final class ProductFixtures extends Fixture
             'Пицца с пепперони, томатным соусом и сыром',
             650,
             470,
-            'pizza',
+            ProductCategory::Pizza,
         ));
 
         $manager->persist(new Product(
@@ -33,7 +34,7 @@ final class ProductFixtures extends Fixture
             'Газированный напиток',
             150,
             500,
-            'drink',
+            ProductCategory::Drink,
         ));
 
         $manager->flush();

@@ -13,8 +13,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/cart', format: 'json')]
+#[IsGranted('ROLE_USER')]
 final class CartController
 {
     public function __construct(
@@ -35,12 +37,11 @@ final class CartController
         #[CurrentUser] User $user,
         int $productId,
         #[MapRequestPayload] UpdateCartItemRequest $payload,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $cart = $this->cartService->setProductQuantity(
             $user,
             $productId,
-            $payload->quantity(),
+            $payload->quantity,
         );
 
         return new JsonResponse(CartResponse::fromEntity($cart), Response::HTTP_OK);

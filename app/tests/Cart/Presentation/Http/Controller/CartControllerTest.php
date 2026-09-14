@@ -269,20 +269,24 @@ final class CartControllerTest extends ApiTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
 
-        $responses = $this->runParallelRequests([
-            [
-                'method' => 'PATCH',
-                'path' => '/cart/items/' . $pepperoniId,
-                'token' => $token,
-                'body' => ['quantity' => 1],
-            ],
-            [
-                'method' => 'PATCH',
-                'path' => '/cart/items/' . $pepperoniId,
-                'token' => $token,
-                'body' => ['quantity' => 2],
-            ],
-        ]);
+        $responses = $this->withConcurrencyBarrier(
+            'cart.find_or_create_for_update',
+            2,
+            fn (): array => $this->runParallelRequests([
+                [
+                    'method' => 'PATCH',
+                    'path' => '/cart/items/' . $pepperoniId,
+                    'token' => $token,
+                    'body' => ['quantity' => 1],
+                ],
+                [
+                    'method' => 'PATCH',
+                    'path' => '/cart/items/' . $pepperoniId,
+                    'token' => $token,
+                    'body' => ['quantity' => 2],
+                ],
+            ]),
+        );
 
         $statuses = array_column($responses, 'status');
         sort($statuses);

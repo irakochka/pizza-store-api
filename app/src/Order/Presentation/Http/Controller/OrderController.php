@@ -17,8 +17,10 @@ use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/orders', format: 'json')]
+#[IsGranted('ROLE_USER')]
 final class OrderController
 {
     public function __construct(
@@ -69,14 +71,14 @@ final class OrderController
     }
 
     #[Route('/{id}/status', name: 'order_status_update', methods: ['PATCH'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function updateStatus(
         int $id,
         #[MapRequestPayload] UpdateOrderStatusRequest $payload,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $order = $this->orderService->changeStatus(
             $id,
-            $payload->status(),
+            $payload->status,
         );
 
         return new JsonResponse(OrderResponse::fromEntity($order), Response::HTTP_OK);

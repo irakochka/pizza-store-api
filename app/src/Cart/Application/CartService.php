@@ -6,11 +6,12 @@ namespace App\Cart\Application;
 
 use App\Cart\Domain\Entity\Cart;
 use App\Cart\Infrastructure\Repository\CartRepository;
+use App\Product\Domain\Exception\ProductNotFoundException;
 use App\Product\Infrastructure\Repository\ProductRepository;
+use App\Shared\Application\ConcurrencyBarrier;
 use App\User\Domain\Entity\User;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class CartService
 {
@@ -18,6 +19,7 @@ final readonly class CartService
         private CartRepository $cartRepository,
         private ProductRepository $productRepository,
         private EntityManagerInterface $entityManager,
+        private ConcurrencyBarrier $concurrencyBarrier,
     ) {
     }
 
@@ -36,7 +38,7 @@ final readonly class CartService
             $product = $this->productRepository->find($productId);
 
             if ($product === null) {
-                throw new NotFoundHttpException('Product not found.');
+                throw new ProductNotFoundException('Product not found.');
             }
 
             $cart->setProductQuantity($product, $quantity);
@@ -70,6 +72,8 @@ final readonly class CartService
 
     private function findOrCreateForUpdate(User $user): Cart
     {
+        $this->concurrencyBarrier->wait('cart.find_or_create_for_update');
+
         $this->entityManager->lock($user, LockMode::PESSIMISTIC_WRITE);
 
         $cart = $this->cartRepository->findOneByUser($user);

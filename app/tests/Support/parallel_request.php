@@ -13,6 +13,7 @@ $method = $argv[1];
 $uri = $argv[2];
 $token = $argv[3] ?? '';
 $body = $argv[4] ?? null;
+$barrierFile = $argv[5] ?? null;
 
 $kernel = new App\Kernel('test', true);
 $kernel->boot();
@@ -23,6 +24,12 @@ $server = [];
 
 if ($token !== '') {
     $server['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+}
+
+if ($barrierFile !== null && $barrierFile !== '') {
+    while (file_exists($barrierFile)) {
+        usleep(1_000);
+    }
 }
 
 if ($body !== null && $body !== '') {

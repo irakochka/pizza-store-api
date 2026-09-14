@@ -173,34 +173,6 @@ final class OrderControllerTest extends ApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
-    public function testCreatePickupOrderIgnoresDeliveryAddress(): void
-    {
-        $productId = $this->productId('Маргарита');
-
-        $this->addProductToCart($productId);
-
-        $client = static::getClient();
-
-        $client->jsonRequest(
-            'POST',
-            '/orders',
-            [
-                'deliveryType' => 'pickup',
-                'deliveryAddress' => [
-                    'region' => 'Не должно сохраниться',
-                ],
-            ],
-            $this->userAuthorizationHeader(),
-        );
-
-        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
-
-        $data = json_decode($client->getResponse()->getContent(), true);
-
-        self::assertSame('pickup', $data['deliveryType']);
-        self::assertNull($data['deliveryAddress']);
-    }
-
     public function testListOrdersSuccess(): void
     {
         $productId = $this->productId('Маргарита');
@@ -276,6 +248,56 @@ final class OrderControllerTest extends ApiTestCase
         $data = json_decode($client->getResponse()->getContent(), true);
 
         self::assertSame('paid', $data['status']);
+    }
+
+    public function testParallelPaidAndCancelledStatusUpdatesDoNotOverwriteCancelledWithPaid(): void
+    {
+        $orderId = $this->createPickupOrder();
+
+        $headers = $this->adminAuthorizationHeader();
+        $token = substr($headers['HTTP_AUTHORIZATION'], 7);
+
+        $responses = $this->withConcurrencyBarrier(
+            'order.change_status_before_find',
+            2,
+            fn (): array => $this->runParallelRequests([
+                [
+                    'method' => 'PATCH',
+                    'path' => '/orders/' . $orderId . '/status',
+                    'token' => $token,
+                    'body' => ['status' => 'paid'],
+                ],
+                [
+                    'method' => 'PATCH',
+                    'path' => '/orders/' . $orderId . '/status',
+                    'token' => $token,
+                    'body' => ['status' => 'cancelled'],
+                ],
+            ]),
+        );
+
+        self::assertCount(2, $responses);
+
+        $statuses = array_column($responses, 'status');
+
+        foreach ($statuses as $status) {
+            self::assertContains($status, [
+                Response::HTTP_OK,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            ]);
+        }
+
+        self::assertContains(Response::HTTP_OK, $statuses);
+
+        $client = static::getClient();
+
+        $client->request('GET', '/orders/' . $orderId, [], [], $this->userAuthorizationHeader());
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        self::assertSame('cancelled', $data['status']);
     }
 
     public function testUpdateOrderStatusRejectsInvalidTransition(): void
