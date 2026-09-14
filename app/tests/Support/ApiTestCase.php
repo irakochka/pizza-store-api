@@ -9,4 +9,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 abstract class ApiTestCase extends WebTestCase
 {
     use AuthenticatesUsers;
+    use FindsFixtureEntities;
+    use LoadsFixtures;
+    use ManagesCart;
+    use RunsParallelRequests;
 }

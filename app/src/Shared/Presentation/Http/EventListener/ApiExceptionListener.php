@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Shared\Presentation\Http\EventListener;
 
+use App\Cart\Domain\Exception\CartLimitExceededException;
+use App\Cart\Domain\Exception\EmptyCartException;
+use App\Order\Domain\Exception\InvalidOrderStatusTransitionException;
+use App\Order\Domain\Exception\OrderNotFoundException;
+use App\Product\Domain\Exception\ProductNotFoundException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -32,6 +37,31 @@ final readonly class ApiExceptionListener
             $event->setResponse(new JsonResponse(
                 ['message' => 'Access denied.'],
                 JsonResponse::HTTP_FORBIDDEN,
+            ));
+
+            return;
+        }
+
+        if (
+            $exception instanceof ProductNotFoundException
+            || $exception instanceof OrderNotFoundException
+        ) {
+            $event->setResponse(new JsonResponse(
+                ['message' => $this->safeMessage($exception)],
+                JsonResponse::HTTP_NOT_FOUND,
+            ));
+
+            return;
+        }
+
+        if (
+            $exception instanceof CartLimitExceededException
+            || $exception instanceof EmptyCartException
+            || $exception instanceof InvalidOrderStatusTransitionException
+        ) {
+            $event->setResponse(new JsonResponse(
+                ['message' => $this->safeMessage($exception)],
+                JsonResponse::HTTP_UNPROCESSABLE_ENTITY,
             ));
 
             return;

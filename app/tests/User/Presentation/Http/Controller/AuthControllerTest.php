@@ -4,35 +4,17 @@ declare(strict_types=1);
 
 namespace App\Tests\User\Presentation\Http\Controller;
 
-use App\Tests\DataFixtures\UserFixtures;
 use App\Tests\Support\ApiTestCase;
 use App\User\Domain\Entity\User;
-use Doctrine\Common\DataFixtures\Executor\ORMExecutor;
-use Doctrine\Common\DataFixtures\Loader;
-use Doctrine\Common\DataFixtures\Purger\ORMPurger;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class AuthControllerTest extends ApiTestCase
 {
-    private EntityManagerInterface $entityManager;
-
     protected function setUp(): void
     {
         static::createClient();
 
-        $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
-
-        $passwordHasher = self::getContainer()->get(UserPasswordHasherInterface::class);
-
-        $loader = new Loader();
-        $loader->addFixture(new UserFixtures($passwordHasher));
-
-        $purger = new ORMPurger($this->entityManager);
-
-        $executor = new ORMExecutor($this->entityManager, $purger);
-        $executor->execute($loader->getFixtures());
+        $this->loadFixtures();
     }
 
     public function testRegisterSuccess(): void
