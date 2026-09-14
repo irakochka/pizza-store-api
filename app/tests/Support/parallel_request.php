@@ -50,4 +50,4 @@ ob_end_clean();
 echo json_encode([
     'status' => $response->getStatusCode(),
     'body' => $response->getContent(),
-], JSON_THROW_ON_ERROR);
+], \JSON_THROW_ON_ERROR);
