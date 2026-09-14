@@ -34,8 +34,6 @@ when@dev:
             resource: '../tests/DataFixtures/'
             autowire: true
             autoconfigure: true
-        App\Shared\Application\ConcurrencyBarrier:
-            alias: App\Shared\Application\NoopConcurrencyBarrier
 
 when@test:
     services:
@@ -43,5 +41,6 @@ when@test:
             resource: '../tests/DataFixtures/'
             autowire: true
             autoconfigure: true
+
         App\Shared\Application\ConcurrencyBarrier:
             alias: App\Shared\Infrastructure\EnvFileConcurrencyBarrier
