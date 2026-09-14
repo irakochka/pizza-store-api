@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+ob_start();
+
 $_SERVER['APP_ENV'] = 'test';
 $_SERVER['APP_DEBUG'] = '1';
 
@@ -43,7 +45,9 @@ if ($body !== null && $body !== '') {
 
 $response = $client->getResponse();
 
+ob_end_clean();
+
 echo json_encode([
     'status' => $response->getStatusCode(),
     'body' => $response->getContent(),
-], \JSON_THROW_ON_ERROR);
+], JSON_THROW_ON_ERROR);
