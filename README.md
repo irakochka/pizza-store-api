@@ -38,6 +38,7 @@ Backend API для интернет-магазина пиццы и напитк�
 - PHP 8.5
 - Symfony 8.1
 - PostgreSQL 17
+- Redis 7.4
 - Nginx 1.29
 - Docker Compose
 - Makefile
@@ -113,6 +114,30 @@ POSTGRES_PORT=5432
 ```dotenv
 POSTGRES_PORT=5433
 ```
+
+Redis-порт на host-машине по умолчанию:
+
+```dotenv
+REDIS_PORT=6379
+```
+
+Внутри Docker-сети приложение подключается к Redis по внутреннему адресу:
+
+```dotenv
+REDIS_HOST=redis
+REDIS_INTERNAL_PORT=6379
+REDIS_URL=redis://redis:6379
+```
+
+Если порт `6379` на host-машине занят, внешний порт Redis можно переопределить в `.env.local`.
+
+TTL кеша каталога продуктов задаётся в секундах:
+
+```dotenv
+PRODUCT_CATALOG_CACHE_TTL=3600
+```
+
+Application-настройки Redis также заданы в `app/.env`, чтобы Symfony мог читать `REDIS_URL` и `PRODUCT_CATALOG_CACHE_TTL`.
 
 ## Запуск
 
@@ -622,3 +647,96 @@ make test-migrations
 ```
 
 **Результат**: реализованы корзина, оформление заказов, доменные ограничения, атомарность конкурентных операций и feature-тесты для основных success/error/concurrency сценариев.
+
+### Этап 7: Redis кеширование
+
+**Цель**: ускорить read-heavy каталог продуктов через Redis-кеш и безопасную инвалидацию при изменениях продуктов.
+
+**Реализовано**:
+
+- В Docker Compose добавлен сервис `redis` с зафиксированной версией `redis:7.4.1-alpine`.
+- Для Redis настроен healthcheck через `redis-cli ping`.
+- PHP-контейнер ожидает готовности PostgreSQL и Redis перед стартом.
+- В production override Redis не публикует порт наружу и доступен только внутри Docker-сети.
+- PHP-образ расширен `ext-redis`, чтобы Symfony Cache мог работать с Redis.
+- Redis-настройки вынесены в env:
+  - `REDIS_HOST`;
+  - `REDIS_PORT`;
+  - `REDIS_INTERNAL_PORT`;
+  - `REDIS_URL`;
+  - `PRODUCT_CATALOG_CACHE_TTL`.
+- Системный кеш Symfony оставлен отдельно от прикладного кеша каталога продуктов.
+- Для каталога продуктов создан отдельный cache pool `product_catalog.cache`.
+- Кешируется только список продуктов `GET /products`; корзины и заказы в кеш не добавлены.
+- Ключ кеша учитывает:
+  - версию формата ответа;
+  - версию каталога;
+  - номер страницы;
+  - размер страницы.
+- `limit` списка продуктов ограничен валидацией `max=100`, чтобы нельзя было бесконтрольно раздувать кеш.
+- TTL каталога задаётся через `PRODUCT_CATALOG_CACHE_TTL` и не захардкожен в коде.
+- При недоступности Redis используется graceful fallback: API возвращает данные из БД и пишет warning в лог.
+- Create/update/delete продукта инвалидируют каталог после успешного `flush()`.
+- Инвалидация реализована через версионирование каталога: новые запросы используют новую версию ключа, старые ключи доживают до TTL.
+- Добавлены тесты для:
+  - cache hit/miss;
+  - разных страниц;
+  - инвалидации версии каталога;
+  - fallback при недоступном кеше;
+  - сериализации полного ответа каталога;
+  - HTTP-сценария, где создание продукта сбрасывает закешированный список.
+
+**Product catalog cache keys**:
+
+```text
+product_catalog.version
+product_catalog.format.1.version.<version>.page.<page>.limit.<limit>
+```
+
+Symfony добавляет к ключам собственный namespace cache pool'а, поэтому в Redis фактический ключ может выглядеть так:
+
+```text
+sQxS+cGbtC:product_catalog.format.1.version.1789836402_123456.page.1.limit.10
+```
+
+**Проверка Redis в dev-окружении**:
+
+```bash
+docker compose exec php php -m | grep redis
+docker compose exec php php -r '$r = new Redis(); var_dump($r->connect("redis", 6379)); var_dump($r->ping());'
+```
+
+Прогреть кеш каталога:
+
+```bash
+curl -s 'http://localhost:8080/products?page=1&limit=10' > /dev/null
+```
+
+Посмотреть ключи в Redis:
+
+```bash
+docker compose exec redis redis-cli --scan | grep product_catalog
+```
+
+Проверить ограничение `limit`:
+
+```bash
+curl -i 'http://localhost:8080/products?limit=101'
+```
+
+Ожидаемый ответ:
+
+```text
+HTTP/1.1 400 Bad Request
+```
+
+**Проверено локально**:
+
+```bash
+docker compose config
+docker compose -f docker-compose.yaml -f docker-compose.prod.yaml config
+docker compose -f docker-compose.yaml -f docker-compose.prod.yaml build php
+docker compose exec php php bin/phpunit
+```
+
+**Результат**: каталог продуктов кешируется в Redis, изменения продуктов безопасно инвалидируют кеш, API сохраняет работоспособность при недоступности Redis, а production-конфигурация не публикует Redis наружу.
