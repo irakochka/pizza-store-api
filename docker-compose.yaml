@@ -7,10 +7,15 @@ services:
       args:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      PRODUCT_CATALOG_CACHE_TTL: ${PRODUCT_CATALOG_CACHE_TTL:-3600}
     volumes:
       - ./app:/var/www/app
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - app
@@ -44,6 +49,19 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - app
+
+  redis:
+    image: redis:7.4.1-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     networks:
       - app
 

@@ -105,6 +105,41 @@ final class ProductControllerTest extends ApiTestCase
         self::assertArrayHasKey('id', $data);
     }
 
+    public function testCreateProductInvalidatesProductListCache(): void
+    {
+        $client = static::getClient();
+
+        $client->request('GET', '/products');
+
+        self::assertResponseIsSuccessful();
+
+        $cachedData = json_decode($client->getResponse()->getContent(), true);
+
+        self::assertCount(3, $cachedData['items']);
+
+        $client->jsonRequest('POST', '/products',
+            [
+                'name' => 'Гавайская',
+                'description' => 'Пицца с курицей и ананасами',
+                'price' => 720,
+                'weight' => 500,
+                'category' => 'pizza',
+            ],
+            $this->adminAuthorizationHeader(),
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+        $client->request('GET', '/products');
+
+        self::assertResponseIsSuccessful();
+
+        $data = json_decode($client->getResponse()->getContent(), true);
+
+        self::assertCount(4, $data['items']);
+        self::assertSame('Гавайская', $data['items'][3]['name']);
+    }
+
     public function testCreateProductReturnsValidationErrorForInvalidPayload(): void
     {
         $client = static::getClient();
