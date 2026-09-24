@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Product\Presentation\Http\Controller;
 
+use App\Product\Application\ProductCatalogCache;
 use App\Product\Application\ProductService;
-use App\Product\Domain\Entity\Product;
 use App\Product\Presentation\Http\Request\CreateProductRequest;
 use App\Product\Presentation\Http\Request\UpdateProductRequest;
 use App\Product\Presentation\Http\Response\ProductResponse;
@@ -21,6 +21,7 @@ final class ProductController
 {
     public function __construct(
         private readonly ProductService $productService,
+        private readonly ProductCatalogCache $productCatalogCache,
     ) {
     }
 
@@ -41,16 +42,8 @@ final class ProductController
         #[MapQueryString(validationFailedStatusCode: Response::HTTP_BAD_REQUEST, mapWhenEmpty: true)]
         PaginationRequest $query,
     ): JsonResponse {
-        $products = $this->productService->list($query->page, $query->limit);
-
-        $items = array_map(static fn (Product $product) => ProductResponse::fromEntity($product), $products);
-
         return new JsonResponse(
-            [
-                'items' => $items,
-                'page' => $query->page,
-                'limit' => $query->limit,
-            ],
+            $this->productCatalogCache->list($query->page, $query->limit),
             Response::HTTP_OK,
         );
     }
