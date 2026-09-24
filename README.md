@@ -121,15 +121,15 @@ Redis-порт на host-машине по умолчанию:
 REDIS_PORT=6379
 ```
 
-Внутри Docker-сети приложение подключается к Redis по внутреннему адресу:
+Symfony подключается к Redis через DSN:
 
 ```dotenv
-REDIS_HOST=redis
-REDIS_INTERNAL_PORT=6379
 REDIS_URL=redis://redis:6379
 ```
 
-Если порт `6379` на host-машине занят, внешний порт Redis можно переопределить в `.env.local`.
+`REDIS_PORT` используется Docker Compose только для публикации Redis на host-машине. Symfony использует `REDIS_URL`.
+
+Если порт `6379` на host-машине занят, `REDIS_PORT` можно переопределить в `.env.local`.
 
 TTL кеша каталога продуктов задаётся в секундах:
 
@@ -137,7 +137,7 @@ TTL кеша каталога продуктов задаётся в секун�
 PRODUCT_CATALOG_CACHE_TTL=3600
 ```
 
-Application-настройки Redis также заданы в `app/.env`, чтобы Symfony мог читать `REDIS_URL` и `PRODUCT_CATALOG_CACHE_TTL`.
+Docker Compose передаёт `REDIS_URL` и `PRODUCT_CATALOG_CACHE_TTL` в PHP-контейнер через `environment`.
 
 ## Запуск
 
@@ -660,9 +660,7 @@ make test-migrations
 - В production override Redis не публикует порт наружу и доступен только внутри Docker-сети.
 - PHP-образ расширен `ext-redis`, чтобы Symfony Cache мог работать с Redis.
 - Redis-настройки вынесены в env:
-  - `REDIS_HOST`;
   - `REDIS_PORT`;
-  - `REDIS_INTERNAL_PORT`;
   - `REDIS_URL`;
   - `PRODUCT_CATALOG_CACHE_TTL`.
 - Системный кеш Symfony оставлен отдельно от прикладного кеша каталога продуктов.
