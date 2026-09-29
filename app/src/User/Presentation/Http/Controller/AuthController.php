@@ -28,6 +28,8 @@ final readonly class AuthController
     {
         $user = $this->authService->register($request);
 
+        throw new InvalidDataExeption('Параметр duration должен быть положительным целым числом');
+
         return new JsonResponse(UserResponse::fromEntity($user), Response::HTTP_CREATED);
     }
 
